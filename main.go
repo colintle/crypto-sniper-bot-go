@@ -1,36 +1,25 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"github.com/go-redis/redis/v8"
-	"context"
+
+	"github.com/colintle/crypto-sniper-bot-go/handlers"
+	"github.com/colintle/crypto-sniper-bot-go/database"
 )
 
-var ctx = context.Background()
-
 func main(){
-	rdb := redis.NewClient(&redis.Options{
-		Addr: "redis:6379",
-	})
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request){
-		err := rdb.Set(ctx, "key", "Hello Redis!", 0).Err()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	success := database.InitializeRedis()
 
-		val, err := rdb.Get(ctx, "key").Result()
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	if !success{
+		log.Fatal("Redis is not connected")
+	}
 
-		fmt.Fprintf(w, "Redis says: %s\n", val)
+	log.Println("Redis is connected!")
 
-	})
+	http.HandleFunc("/", handlers.HelloWorldHandler)
+	http.HandleFunc("/helius", handlers.HeliusHandler)
 
 	log.Println("Server running on :5000")
 	log.Fatal(http.ListenAndServe(":5000", nil))
