@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    env_file:
+      - .env
+    container_name: app
+    volumes:
+      - .:/app
+    ports:
+      - "5000:5000"
+    command: air
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:latest
+    container_name: redis
+
