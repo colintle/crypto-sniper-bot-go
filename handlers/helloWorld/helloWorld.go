@@ -1,4 +1,4 @@
-package handlers
+package helloWorld
 
 import (
 	"net/http"
@@ -6,5 +6,7 @@ import (
 )
 
 func HelloWorldHandler(w http.ResponseWriter, r *http.Request){
+
+	fmt.Println("Testing")
 	fmt.Fprintf(w, "Hello World!")
 }

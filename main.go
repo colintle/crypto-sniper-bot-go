@@ -4,7 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/colintle/crypto-sniper-bot-go/handlers"
+	// "github.com/colintle/crypto-sniper-bot-go/handlers/helius"
+	"github.com/colintle/crypto-sniper-bot-go/handlers/helloWorld"
 	"github.com/colintle/crypto-sniper-bot-go/database"
 )
 
@@ -18,10 +19,9 @@ func main(){
 
 	log.Println("Redis is connected!")
 
-	http.HandleFunc("/", handlers.HelloWorldHandler)
-	http.HandleFunc("/helius", handlers.HeliusHandler)
+	http.HandleFunc("/", helloWorld.HelloWorldHandler)
+	//http.HandleFunc("/helius", helius.HeliusHandler)
 
 	log.Println("Server running on :5000")
 	log.Fatal(http.ListenAndServe(":5000", nil))
 }
-
