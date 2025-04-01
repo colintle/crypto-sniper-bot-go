@@ -13,14 +13,13 @@ import (
 func Buy(tokenMint string, solSpent float64) models.Trade {
 	buySolAmount := solSpent / config.POSITION_SIZE
 	balance := operations.GetSOLBalanceCached()
-	fmt.Println(balance)
 
 	if balance < config.MIN_BALANCE {
 		return tradeError("Not enough SOL", tokenMint, models.Buy, models.MINIMUM_SOL, balance)
 	}
 
-	if balance*config.RISK_TOLERANCE < buySolAmount {
-		return tradeError("Not enough SOL", tokenMint, models.Buy, models.LOW_SOL, balance)
+	if config.MAX_POSITION < buySolAmount {
+		return tradeError("Buy SOL amount is bigger than max position", tokenMint, models.Buy, models.LOW_SOL, balance)
 	}
 
 	lamports := int(buySolAmount * config.LAMPORTS_PER_SOL)
