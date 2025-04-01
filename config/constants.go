@@ -4,7 +4,7 @@ import "os"
 
 const (
 	POSITION_SIZE     = 10
-	RISK_TOLERANCE    = 0.50
+	MAX_POSITION      = 1
 	SLIPPAGE          = 1
 	MIN_BALANCE       = 0
 	JUPITER_QUOTE_URL = "https://api.jup.ag/swap/v1/quote"
