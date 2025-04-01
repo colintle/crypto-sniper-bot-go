@@ -2,7 +2,7 @@ package helius
 
 import (
 	"encoding/json"
-	"fmt"
+	// "fmt"
 	"log"
 	"net/http"
 	"time"
@@ -34,14 +34,14 @@ func HeliusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	currentTime := time.Now()
-	fmt.Printf("Received Timestamp from Webhook: %s\n", currentTime.Format("2006-01-02 15:04:05"))
+	// currentTime := time.Now()
+	// fmt.Printf("Received Timestamp from Webhook: %s\n", currentTime.Format("2006-01-02 15:04:05"))
 
 	for _, tx := range data {
 		txTimestampRaw, _ := tx["timestamp"].(float64)
 		txTime := time.Unix(int64(txTimestampRaw), 0)
 
-		fmt.Printf("Transaction Timestamp: %s\n", txTime.Format("2006-01-02 15:04:05"))
+		// fmt.Printf("Transaction Timestamp: %s\n", txTime.Format("2006-01-02 15:04:05"))
 
 		tokens, _ := tx["tokenTransfers"].([]interface{})
 		accounts, _ := tx["accountData"].([]interface{})
@@ -57,6 +57,7 @@ func HeliusHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		var result models.Trade
 		for _, t := range tokens {
 			token := t.(map[string]interface{})
 
@@ -70,7 +71,7 @@ func HeliusHandler(w http.ResponseWriter, r *http.Request) {
 				if time.Since(txTime) > 6*time.Second {
 					message := "Skipping stale BUY (>6s old)"
 					errStr := string(models.EXPIRED)
-					result := models.Trade{
+					result = models.Trade{
 						Success:      false,
 						Timestamp:    time.Now(),
 						TokenAddress: mint,
@@ -87,7 +88,7 @@ func HeliusHandler(w http.ResponseWriter, r *http.Request) {
 				if mint == config.SOL_MINT {
 					message := "Case in trader is buying SOL"
 					errStr := string(models.BUY_SOL)
-					result := models.Trade{
+					result = models.Trade{
 						Success:      false,
 						Timestamp:    time.Now(),
 						TokenAddress: mint,
@@ -105,25 +106,25 @@ func HeliusHandler(w http.ResponseWriter, r *http.Request) {
 				if solChange < 0 {
 					solSpent = -solChange
 				}
-				price := 0.0
-				if amount != 0 {
-					price = solSpent / amount
-				}
+				// price := 0.0
+				// if amount != 0 {
+				// 	price = solSpent / amount
+				// }
 
-				fmt.Println("🟢 BUY Detected")
-				fmt.Printf("  Mint: %s\n", mint)
-				fmt.Printf("  Amount: %f\n", amount)
-				fmt.Printf("  SOL Spent: %.10f\n", solSpent)
-				fmt.Printf("  Price per token: %.10f SOL\n\n", price)
+				// fmt.Println("🟢 BUY Detected")
+				// fmt.Printf("  Mint: %s\n", mint)
+				// fmt.Printf("  Amount: %f\n", amount)
+				// fmt.Printf("  SOL Spent: %.10f\n", solSpent)
+				// fmt.Printf("  Price per token: %.10f SOL\n\n", price)
 
-				result := transaction.Buy(mint, solSpent)
+				result = transaction.Buy(mint, solSpent)
 				logging.LogTradeToCSV(result)
 
 			} else if fromUser == config.TRACKING_WALLET {
 				if time.Since(txTime) > 10*time.Second {
 					message := "Skipping stale SELL (>10s old)"
 					errStr := string(models.EXPIRED)
-					result := models.Trade{
+					result = models.Trade{
 						Success:      false,
 						Timestamp:    time.Now(),
 						TokenAddress: mint,
@@ -136,22 +137,22 @@ func HeliusHandler(w http.ResponseWriter, r *http.Request) {
 					logging.LogTradeToCSV(result)
 					continue
 				}
-				solReceived := 0.0
-				if solChange > 0 {
-					solReceived = solChange
-				}
-				price := 0.0
-				if amount != 0 {
-					price = solReceived / amount
-				}
+				// solReceived := 0.0
+				// if solChange > 0 {
+				// 	solReceived = solChange
+				// }
+				// price := 0.0
+				// if amount != 0 {
+				// 	price = solReceived / amount
+				// }
 
-				fmt.Println("🔴 SELL Detected")
-				fmt.Printf("  Mint: %s\n", mint)
-				fmt.Printf("  Amount: %f\n", amount)
-				fmt.Printf("  SOL Received: %.10f\n", solReceived)
-				fmt.Printf("  Price per token: %.10f SOL\n\n", price)
+				// fmt.Println("🔴 SELL Detected")
+				// fmt.Printf("  Mint: %s\n", mint)
+				// fmt.Printf("  Amount: %f\n", amount)
+				// fmt.Printf("  SOL Received: %.10f\n", solReceived)
+				// fmt.Printf("  Price per token: %.10f SOL\n\n", price)
 
-				result := transaction.Sell(mint, amount)
+				result = transaction.Sell(mint, amount)
 				logging.LogTradeToCSV(result)
 			}
 		}
