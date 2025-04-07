@@ -11,11 +11,10 @@ import (
 
 func HelloWorldHandler(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Println("Testing")
-	fmt.Fprintf(w, "Hello World!")
+	// fmt.Println("Testing")
+	// fmt.Fprintf(w, "Hello World!")
 
-	var result models.Trade
-	result = transaction.Buy("7HoCDyzPwSfgrPxYCA5w1XetujmBtDhUPUnTrEF1pump", 0.05)
+	var result models.Trade = transaction.Buy("7HoCDyzPwSfgrPxYCA5w1XetujmBtDhUPUnTrEF1pump", 0.05)
 	if result.Success {
 		fmt.Fprintf(w, "Transaction went through")
 		result1 := transaction.Sell("7HoCDyzPwSfgrPxYCA5w1XetujmBtDhUPUnTrEF1pump", *result.AmountToken*config.POSITION_SIZE)
