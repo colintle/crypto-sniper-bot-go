@@ -35,7 +35,16 @@ func getSwapTransaction(tokenMint string, quoteResp map[string]interface{}) (str
 	}
 	payload, _ := json.Marshal(swapReq)
 
-	resp, err := http.Post(config.JUPITER_SWAP_URL, "application/json", bytes.NewBuffer(payload))
+	req, err := http.NewRequest("POST", config.JUPITER_SWAP_URL, bytes.NewBuffer(payload))
+	if err != nil {
+		return "", 0, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("x-api-key", config.JUPITER_API_KEY)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", 0, err
 	}
@@ -73,7 +82,15 @@ func getQuote(tokenMint string, lamports int) (map[string]interface{}, error) {
 	url := fmt.Sprintf("%s?inputMint=%s&outputMint=%s&amount=%d&slippageBps=%d",
 		config.JUPITER_QUOTE_URL, config.SOL_MINT, tokenMint, lamports, config.SLIPPAGE)
 
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("x-api-key", config.JUPITER_API_KEY)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +110,15 @@ func getQuoteSell(tokenMint string, lamports int) (map[string]interface{}, error
 	url := fmt.Sprintf("%s?inputMint=%s&outputMint=%s&amount=%d&slippageBps=%d",
 		config.JUPITER_QUOTE_URL, tokenMint, config.SOL_MINT, lamports, config.SLIPPAGE)
 
-	resp, err := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("x-api-key", config.JUPITER_API_KEY)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}

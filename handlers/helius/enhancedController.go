@@ -152,7 +152,7 @@ func EnhancedHeliusHandler(w http.ResponseWriter, r *http.Request) {
 				// fmt.Printf("  SOL Received: %.10f\n", solReceived)
 				// fmt.Printf("  Price per token: %.10f SOL\n\n", price)
 
-				result = transaction.Sell(mint, amount)
+				result = transaction.Sell(mint, amount, 6)
 				logging.LogTradeToCSV(result)
 			}
 		}

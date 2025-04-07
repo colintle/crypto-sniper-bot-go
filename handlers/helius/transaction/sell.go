@@ -2,16 +2,16 @@ package transaction
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/colintle/crypto-sniper-bot-go/config"
 	"github.com/colintle/crypto-sniper-bot-go/database"
 	"github.com/colintle/crypto-sniper-bot-go/handlers/helius/operations"
 	"github.com/colintle/crypto-sniper-bot-go/models"
-	"github.com/colintle/crypto-sniper-bot-go/util"
 )
 
-func Sell(tokenMint string, tokenAmount float64) models.Trade {
+func Sell(tokenMint string, tokenAmount float64, decimals int) models.Trade {
 	currentBalance := operations.GetTokenBalanceCached(tokenMint)
 	currentSOLBalance := operations.GetSOLBalanceCached()
 	if currentBalance == 0 {
@@ -20,16 +20,16 @@ func Sell(tokenMint string, tokenAmount float64) models.Trade {
 
 	portionToSell := tokenAmount / config.POSITION_SIZE
 	finalSellAmount := min(portionToSell, currentBalance)
+
+	if math.Abs(currentBalance-portionToSell) < 5 {
+		finalSellAmount = currentBalance
+	}
+
 	if finalSellAmount <= 0 {
 		return tradeError("No tokens to sell after final calculation.", tokenMint, models.Sell, models.MIN_TOKEN, currentSOLBalance)
 	}
 
-	decimals := util.GetTokenDecimals(tokenMint)
-	if decimals == nil {
-		return tradeError("Missing decimals", tokenMint, models.Sell, models.MISSING_DEC, currentSOLBalance)
-	}
-
-	lamports := int(finalSellAmount * float64(intPow(10, *decimals)))
+	lamports := int(finalSellAmount * float64(intPow(10, decimals)))
 	quoteResp, err := getQuoteSell(tokenMint, lamports)
 	if err != nil {
 		return tradeError(fmt.Sprintf("Quote error: %v", err), tokenMint, models.Sell, models.QUOTE_ERROR, currentSOLBalance)

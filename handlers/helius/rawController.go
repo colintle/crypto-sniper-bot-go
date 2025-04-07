@@ -225,7 +225,7 @@ func RawHelisusHandler(w http.ResponseWriter, r *http.Request) {
 
 		// }
 
-		// result = transaction.Sell(tokenMint, solAmount)
+		// result = transaction.Sell(tokenMint, solAmount, decimals)
 		// logging.LogTradeToCSV(result)
 
 	} else {
