@@ -32,7 +32,7 @@ func main() {
 
 	transaction.InitKeypair()
 	http.HandleFunc("/", helloWorld.HelloWorldHandler)
-	http.HandleFunc("/helius", helius.HeliusHandler)
+	http.HandleFunc("/helius", helius.RawHelisusHandler)
 
 	log.Println("Server running on :5000")
 	log.Fatal(http.ListenAndServe(":5000", nil))
