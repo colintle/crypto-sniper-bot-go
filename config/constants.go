@@ -22,4 +22,5 @@ var (
 	API_KEY            = os.Getenv("HELIUS_API_KEY")
 	HELIUS_URL         = os.Getenv("HELIUS_URL")
 	BEARER_TOKEN       = os.Getenv("BEARER_TOKEN")
+	JUPITER_API_KEY    = os.Getenv("JUPITER_API_KEY")
 )
