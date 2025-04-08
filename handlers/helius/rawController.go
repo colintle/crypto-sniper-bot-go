@@ -11,6 +11,10 @@ import (
 
 	"github.com/colintle/crypto-sniper-bot-go/config"
 	"github.com/colintle/crypto-sniper-bot-go/util"
+	"github.com/colintle/crypto-sniper-bot-go/handlers/helius/logging"
+	"github.com/colintle/crypto-sniper-bot-go/handlers/helius/transaction"
+	"github.com/colintle/crypto-sniper-bot-go/models"
+
 )
 
 func RawHelisusHandler(w http.ResponseWriter, r *http.Request) {
@@ -171,7 +175,7 @@ func RawHelisusHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// var result models.Trade
+	var result models.Trade
 	if txType == "buy" && len(tokenMint) > 0 && tokenMint != config.SOL_MINT {
 		solAmount = util.CustomRound(solAmount)
 		fmt.Printf("Time for Processing After: %f\n", time.Since(t).Seconds())
@@ -181,25 +185,25 @@ func RawHelisusHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("  Decimals: %v\n", decimals)
 		fmt.Printf("  SOL Spent: %.10f\n", solAmount)
 
-		// if time.Since(t) > 6*time.Second {
-		// 	message := "Skipping stale BUY (>6s old)"
-		// 	errStr := string(models.EXPIRED)
-		// 	result = models.Trade{
-		// 		Success:      false,
-		// 		Timestamp:    time.Now(),
-		// 		TokenAddress: tokenMint,
-		// 		Side:         string(models.Buy),
-		// 		AmountSOL:    nil,
-		// 		AmountToken:  nil,
-		// 		Message:      &message,
-		// 		Error:        &errStr,
-		// 	}
-		// 	logging.LogTradeToCSV(result)
-		// 	return
-		// }
+		if time.Since(t) > 6*time.Second {
+			message := "Skipping stale BUY (>6s old)"
+			errStr := string(models.EXPIRED)
+			result = models.Trade{
+				Success:      false,
+				Timestamp:    time.Now(),
+				TokenAddress: tokenMint,
+				Side:         string(models.Buy),
+				AmountSOL:    nil,
+				AmountToken:  nil,
+				Message:      &message,
+				Error:        &errStr,
+			}
+			logging.LogTradeToCSV(result)
+			return
+		}
 
-		// result = transaction.Buy(tokenMint, solAmount)
-		// logging.LogTradeToCSV(result)
+		result = transaction.Buy(tokenMint, solAmount)
+		logging.LogTradeToCSV(result)
 	} else if txType == "sell" && len(tokenMint) > 0 && tokenMint != config.SOL_MINT {
 		fmt.Printf("Time for Processing After: %f\n", time.Since(t).Seconds())
 		fmt.Println("🔴 SELL Detected")
@@ -208,25 +212,25 @@ func RawHelisusHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("  Decimals: %v\n", decimals)
 		fmt.Printf("  SOL Received: %.10f\n", solAmount)
 
-		// if time.Since(t) > 10*time.Second {
-		// 	message := "Skipping stale SELL (>10s old)"
-		// 	errStr := string(models.EXPIRED)
-		// 	result = models.Trade{
-		// 		Success:      false,
-		// 		Timestamp:    time.Now(),
-		// 		TokenAddress: tokenMint,
-		// 		Side:         string(models.Sell),
-		// 		AmountSOL:    nil,
-		// 		AmountToken:  nil,
-		// 		Message:      &message,
-		// 		Error:        &errStr,
-		// 	}
-		// 	logging.LogTradeToCSV(result)
+		if time.Since(t) > 10*time.Second {
+			message := "Skipping stale SELL (>10s old)"
+			errStr := string(models.EXPIRED)
+			result = models.Trade{
+				Success:      false,
+				Timestamp:    time.Now(),
+				TokenAddress: tokenMint,
+				Side:         string(models.Sell),
+				AmountSOL:    nil,
+				AmountToken:  nil,
+				Message:      &message,
+				Error:        &errStr,
+			}
+			logging.LogTradeToCSV(result)
 
-		// }
+		}
 
-		// result = transaction.Sell(tokenMint, solAmount, decimals)
-		// logging.LogTradeToCSV(result)
+		result = transaction.Sell(tokenMint, humanTokenAmount, decimals.(int))
+		logging.LogTradeToCSV(result)
 
 	} else {
 		fmt.Println("Neutral or unclear transaction type.")
