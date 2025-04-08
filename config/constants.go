@@ -4,8 +4,8 @@ import "os"
 
 const (
 	POSITION_SIZE     = 10
-	MAX_POSITION      = 1
-	SLIPPAGE          = 1
+	MAX_POSITION      = 0.5
+	SLIPPAGE          = 100
 	MIN_BALANCE       = 0
 	JUPITER_QUOTE_URL = "https://api.jup.ag/swap/v1/quote"
 	JUPITER_SWAP_URL  = "https://api.jup.ag/swap/v1/swap"
