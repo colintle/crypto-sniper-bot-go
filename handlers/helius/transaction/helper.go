@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -38,6 +39,7 @@ func getSwapTransaction(tokenMint string, quoteResp map[string]interface{}, deci
 			},
 		},
 		"dynamicComputeUnitLimit": true,
+		"dynamicSlippage": true,
 	}
 
 	payload, _ := json.Marshal(swapReq)
@@ -69,6 +71,23 @@ func getSwapTransaction(tokenMint string, quoteResp map[string]interface{}, deci
 		return "", 0, err
 	}
 
+	// swapDataBytes, err := json.MarshalIndent(swapData, "", "  ")
+	// if err != nil {
+	// 	fmt.Printf("Error marshaling swapData for printing: %v\n", err)
+	// } else {
+	// 	fmt.Printf("🔍 Swap response:\n%s\n", string(swapDataBytes))
+	// }
+
+	if simErr, ok := swapData["simulationError"]; ok && simErr != nil {
+		// simErrMap, isMap := simErr.(map[string]interface{})
+		// if isMap {
+		// 	fmt.Printf("❌ Simulation error detected: %v\n", simErrMap["error"])
+		// } else {
+		// 	fmt.Printf("❌ Simulation error detected: %v\n", simErr)
+		// }
+		return "", 0, fmt.Errorf("swap simulation error: %v", simErr)
+	}
+
 	tx, ok := swapData["swapTransaction"].(string)
 	if !ok {
 		return "", 0, fmt.Errorf("missing swapTransaction field")
@@ -95,6 +114,8 @@ func getQuote(tokenMint string, lamports int) (map[string]interface{}, error) {
 		lamports,
 	)
 
+	// fmt.Printf("📤 Requesting Quote URL: %s\n", url)
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
@@ -116,13 +137,40 @@ func getQuote(tokenMint string, lamports int) (map[string]interface{}, error) {
 	}
 	defer resp.Body.Close()
 
-	var quoteResp map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&quoteResp); err != nil {
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
 		return nil, err
 	}
+
+	// var prettyJSON bytes.Buffer
+	// if err := json.Indent(&prettyJSON, bodyBytes, "", "  "); err != nil {
+	// 	fmt.Printf("⚠️ Failed to format JSON: %v\n", err)
+	// 	fmt.Printf("Raw body: %s\n", string(bodyBytes))
+	// } else {
+	// 	fmt.Printf("🔍 Quote Response:\n%s\n", prettyJSON.String())
+	// }
+
+	var quoteResp map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &quoteResp); err != nil {
+		return nil, err
+	}
+
 	if _, ok := quoteResp["routePlan"]; !ok {
 		return nil, fmt.Errorf("no route to purchase token")
 	}
+
+	outAmountStr, ok := quoteResp["outAmount"].(string)
+	if !ok {
+		return nil, fmt.Errorf("invalid outAmount in quote")
+	}
+	outAmount, err := strconv.ParseFloat(outAmountStr, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid outAmount value")
+	}
+	if outAmount == 0 {
+		return nil, fmt.Errorf("outAmount is zero, no liquidity")
+	}
+
 	return quoteResp, nil
 }
 
@@ -155,13 +203,40 @@ func getQuoteSell(tokenMint string, lamports int) (map[string]interface{}, error
 	}
 	defer resp.Body.Close()
 
-	var quoteResp map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&quoteResp); err != nil {
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
 		return nil, err
 	}
+
+	// var prettyJSON bytes.Buffer
+	// if err := json.Indent(&prettyJSON, bodyBytes, "", "  "); err != nil {
+	// 	fmt.Printf("⚠️ Failed to format JSON: %v\n", err)
+	// 	fmt.Printf("Raw body: %s\n", string(bodyBytes))
+	// } else {
+	// 	fmt.Printf("🔍 Sell Quote Response:\n%s\n", prettyJSON.String())
+	// }
+
+	var quoteResp map[string]interface{}
+	if err := json.Unmarshal(bodyBytes, &quoteResp); err != nil {
+		return nil, err
+	}
+
 	if _, ok := quoteResp["routePlan"]; !ok {
 		return nil, fmt.Errorf("no route to sell token")
 	}
+
+	outAmountStr, ok := quoteResp["outAmount"].(string)
+	if !ok {
+		return nil, fmt.Errorf("invalid outAmount in quote")
+	}
+	outAmount, err := strconv.ParseFloat(outAmountStr, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid outAmount value")
+	}
+	if outAmount == 0 {
+		return nil, fmt.Errorf("outAmount is zero, no liquidity")
+	}
+
 	return quoteResp, nil
 }
 
