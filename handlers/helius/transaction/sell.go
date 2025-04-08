@@ -15,6 +15,7 @@ import (
 func Sell(tokenMint string, tokenAmount float64, decimals int) models.Trade {
 	currentBalance := operations.GetTokenBalanceCached(tokenMint)
 	currentSOLBalance := operations.GetSOLBalanceCached()
+
 	if currentBalance == 0 {
 		return tradeError("No tokens to sell; balance is 0.", tokenMint, models.Sell, models.LOW_TOKEN, currentSOLBalance)
 	}
@@ -32,82 +33,65 @@ func Sell(tokenMint string, tokenAmount float64, decimals int) models.Trade {
 
 	lamports := int(finalSellAmount * float64(intPow(10, decimals)))
 
-	quoteChan := make(chan map[string]interface{})
-	doneChan := make(chan struct{})
-	defer close(doneChan)
+	redisSuccess, originalSOL, originalToken, newSOL := operations.Sell(tokenMint, currentSOLBalance, finalSellAmount)
+	if !redisSuccess {
+		return tradeError("Failed to update Redis balances before sell", tokenMint, models.Sell, models.REDIS_ERROR, currentSOLBalance)
+	}
+
+	rdb := database.GetRedisClient()
+	ctx := database.GetRedisContext()
+
+	doneChan := make(chan models.Trade)
 
 	go func() {
-		ticker := time.NewTicker(100 * time.Millisecond)
-		defer ticker.Stop()
+		defer close(doneChan)
+
 		for {
-			select {
-			case <-doneChan:
-				return
-			case <-ticker.C:
-				quoteResp, err := getQuoteSell(tokenMint, lamports)
-				if err != nil {
-					continue
-				}
-				if outAmountStr, ok := quoteResp["outAmount"].(string); ok && outAmountStr != "0" {
-					select {
-					case quoteChan <- quoteResp:
-					default:
-					}
-				}
+			quoteResp, err := getQuoteSell(tokenMint, lamports)
+			if err != nil {
+				// log.Println("Sell: quote fetch error:", err)
+				time.Sleep(500 * time.Millisecond)
+				continue
 			}
+
+			swapTx, solReceived, err := getSwapTransaction(config.SOL_MINT, quoteResp, 9)
+			if err != nil {
+				// log.Println("Sell: swap transaction prep error:", err)
+				time.Sleep(500 * time.Millisecond)
+				continue
+			}
+
+			// log.Println("Sell: got valid swap transaction")
+
+			result := signAndSendTransaction(swapTx)
+			success, ok := result["success"].(bool)
+			if ok && success {
+				log.Println("Sell: signed and sent transaction successfully")
+				doneChan <- models.Trade{
+					Success:      true,
+					Timestamp:    time.Now(),
+					TokenAddress: tokenMint,
+					Side:         string(models.Sell),
+					AmountSOL:    &solReceived,
+					AmountToken:  &finalSellAmount,
+					Balance:      &newSOL,
+				}
+				return
+			}
+
+			// log.Printf("Sell: sign and send failed: %v. Retrying...\n", result["error"])
+			time.Sleep(500 * time.Millisecond)
 		}
 	}()
 
-	timeout := time.After(5 * time.Second)
-
-	var finalQuoteResp map[string]interface{}
-	var swapTx string
-	var solReceived float64
-	var err error
-
-attemptLoop:
-	for {
-		select {
-		case <-timeout:
-			return tradeError("Sell failed: Timeout waiting for fresh quote", tokenMint, models.Sell, models.QUOTE_ERROR, currentSOLBalance)
-
-		case quoteResp := <-quoteChan:
-			finalQuoteResp = quoteResp
-
-			swapTx, solReceived, err = getSwapTransaction(config.SOL_MINT, finalQuoteResp, 9)
-			if err == nil {
-				break attemptLoop
-			}
-
-			log.Printf("Swap preparation failed: %v. Retrying with fresh quote...\n", err)
-		}
-	}
-
-	redisSuccess, originalSOL, originalToken, newSOL := operations.Sell(tokenMint, solReceived, finalSellAmount)
-	if !redisSuccess {
-		return tradeError("Failed to update Redis balances after sell", tokenMint, models.Sell, models.REDIS_ERROR, currentSOLBalance)
-	}
-
-	result := signAndSendTransaction(swapTx)
-	success, ok := result["success"].(bool)
-	if !ok || !success {
-		rdb := database.GetRedisClient()
-		ctx := database.GetRedisContext()
-
+	result, ok := <-doneChan
+	if !ok || !result.Success {
+		log.Println("Sell: transaction failed, rolling back Redis balances")
 		_ = rdb.Set(ctx, "balance:sol", originalSOL, 0).Err()
 		tokenKey := fmt.Sprintf("balance:token:%s", tokenMint)
 		_ = rdb.Set(ctx, tokenKey, originalToken, 0).Err()
 
-		return tradeError("Signing and sending transaction failed", tokenMint, models.Sell, models.SIGN_ERROR, currentSOLBalance)
+		return tradeError("Sell: transaction failed after retries", tokenMint, models.Sell, models.SIGN_ERROR, currentSOLBalance)
 	}
-
-	return models.Trade{
-		Success:      true,
-		Timestamp:    time.Now(),
-		TokenAddress: tokenMint,
-		Side:         string(models.Sell),
-		AmountSOL:    &solReceived,
-		AmountToken:  &finalSellAmount,
-		Balance:      &newSOL,
-	}
+	return result
 }
