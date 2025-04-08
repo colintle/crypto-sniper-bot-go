@@ -11,7 +11,6 @@ import (
 
 	"github.com/colintle/crypto-sniper-bot-go/config"
 	"github.com/colintle/crypto-sniper-bot-go/models"
-	// "github.com/colintle/crypto-sniper-bot-go/util"
 )
 
 func tradeError(msg string, tokenMint string, side models.Side, error models.Error, balance float64) models.Trade {
@@ -32,7 +31,15 @@ func getSwapTransaction(tokenMint string, quoteResp map[string]interface{}, deci
 	swapReq := map[string]interface{}{
 		"userPublicKey": WalletPublicKey.String(),
 		"quoteResponse": quoteResp,
+		"prioritizationFeeLamports": map[string]interface{}{
+			"priorityLevelWithMaxLamports": map[string]interface{}{
+				"maxLamports":   config.SELL_PRIORITY_FEE,
+				"priorityLevel": "veryHigh",
+			},
+		},
+		"dynamicComputeUnitLimit": true,
 	}
+
 	payload, _ := json.Marshal(swapReq)
 
 	req, err := http.NewRequest("POST", config.JUPITER_SWAP_URL, bytes.NewBuffer(payload))
@@ -43,7 +50,14 @@ func getSwapTransaction(tokenMint string, quoteResp map[string]interface{}, deci
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-api-key", config.JUPITER_API_KEY)
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 2 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 100,
+			IdleConnTimeout:     90 * time.Second,
+		},
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", 0, err
@@ -74,8 +88,12 @@ func getSwapTransaction(tokenMint string, quoteResp map[string]interface{}, deci
 }
 
 func getQuote(tokenMint string, lamports int) (map[string]interface{}, error) {
-	url := fmt.Sprintf("%s?inputMint=%s&outputMint=%s&amount=%d&slippageBps=%d",
-		config.JUPITER_QUOTE_URL, config.SOL_MINT, tokenMint, lamports, config.SLIPPAGE)
+	url := fmt.Sprintf("%s?inputMint=%s&outputMint=%s&amount=%d&dynamicSlippage=true",
+		config.JUPITER_QUOTE_URL,
+		config.SOL_MINT,
+		tokenMint,
+		lamports,
+	)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -84,7 +102,14 @@ func getQuote(tokenMint string, lamports int) (map[string]interface{}, error) {
 
 	req.Header.Set("x-api-key", config.JUPITER_API_KEY)
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 2 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 100,
+			IdleConnTimeout:     90 * time.Second,
+		},
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
@@ -102,8 +127,12 @@ func getQuote(tokenMint string, lamports int) (map[string]interface{}, error) {
 }
 
 func getQuoteSell(tokenMint string, lamports int) (map[string]interface{}, error) {
-	url := fmt.Sprintf("%s?inputMint=%s&outputMint=%s&amount=%d&slippageBps=%d",
-		config.JUPITER_QUOTE_URL, tokenMint, config.SOL_MINT, lamports, config.SLIPPAGE)
+	url := fmt.Sprintf("%s?inputMint=%s&outputMint=%s&amount=%d&dynamicSlippage=true",
+		config.JUPITER_QUOTE_URL,
+		tokenMint,
+		config.SOL_MINT,
+		lamports,
+	)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -112,7 +141,14 @@ func getQuoteSell(tokenMint string, lamports int) (map[string]interface{}, error
 
 	req.Header.Set("x-api-key", config.JUPITER_API_KEY)
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 2 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 100,
+			IdleConnTimeout:     90 * time.Second,
+		},
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err

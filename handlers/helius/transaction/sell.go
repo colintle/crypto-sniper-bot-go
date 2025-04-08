@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"time"
 
@@ -30,14 +31,56 @@ func Sell(tokenMint string, tokenAmount float64, decimals int) models.Trade {
 	}
 
 	lamports := int(finalSellAmount * float64(intPow(10, decimals)))
-	quoteResp, err := getQuoteSell(tokenMint, lamports)
-	if err != nil {
-		return tradeError(fmt.Sprintf("Quote error: %v", err), tokenMint, models.Sell, models.QUOTE_ERROR, currentSOLBalance)
-	}
 
-	swapTx, solReceived, err := getSwapTransaction(config.SOL_MINT, quoteResp, 9)
-	if err != nil {
-		return tradeError(fmt.Sprintf("Swap preparation failed: %v", err), tokenMint, models.Sell, models.SWAP_ERROR, currentSOLBalance)
+	quoteChan := make(chan map[string]interface{})
+	doneChan := make(chan struct{})
+	defer close(doneChan)
+
+	go func() {
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-doneChan:
+				return
+			case <-ticker.C:
+				quoteResp, err := getQuoteSell(tokenMint, lamports)
+				if err != nil {
+					continue
+				}
+				if outAmountStr, ok := quoteResp["outAmount"].(string); ok && outAmountStr != "0" {
+					select {
+					case quoteChan <- quoteResp:
+					default:
+					}
+				}
+			}
+		}
+	}()
+
+	timeout := time.After(5 * time.Second)
+
+	var finalQuoteResp map[string]interface{}
+	var swapTx string
+	var solReceived float64
+	var err error
+
+attemptLoop:
+	for {
+		select {
+		case <-timeout:
+			return tradeError("Sell failed: Timeout waiting for fresh quote", tokenMint, models.Sell, models.QUOTE_ERROR, currentSOLBalance)
+
+		case quoteResp := <-quoteChan:
+			finalQuoteResp = quoteResp
+
+			swapTx, solReceived, err = getSwapTransaction(config.SOL_MINT, finalQuoteResp, 9)
+			if err == nil {
+				break attemptLoop
+			}
+
+			log.Printf("Swap preparation failed: %v. Retrying with fresh quote...\n", err)
+		}
 	}
 
 	redisSuccess, originalSOL, originalToken, newSOL := operations.Sell(tokenMint, solReceived, finalSellAmount)

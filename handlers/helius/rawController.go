@@ -10,11 +10,10 @@ import (
 	"time"
 
 	"github.com/colintle/crypto-sniper-bot-go/config"
-	"github.com/colintle/crypto-sniper-bot-go/util"
 	"github.com/colintle/crypto-sniper-bot-go/handlers/helius/logging"
 	"github.com/colintle/crypto-sniper-bot-go/handlers/helius/transaction"
 	"github.com/colintle/crypto-sniper-bot-go/models"
-
+	"github.com/colintle/crypto-sniper-bot-go/util"
 )
 
 func RawHelisusHandler(w http.ResponseWriter, r *http.Request) {
@@ -203,7 +202,7 @@ func RawHelisusHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// decimals has to be from the token
-		result = transaction.Buy(tokenMint, solAmount, decimals.(int))
+		result = transaction.Buy(tokenMint, solAmount, int(decimals.(float64)))
 		logging.LogTradeToCSV(result)
 	} else if txType == "sell" && len(tokenMint) > 0 && tokenMint != config.SOL_MINT {
 		fmt.Printf("Time for Processing After: %f\n", time.Since(t).Seconds())
@@ -231,7 +230,7 @@ func RawHelisusHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// decimals has to be from the token
-		result = transaction.Sell(tokenMint, humanTokenAmount, decimals.(int))
+		result = transaction.Sell(tokenMint, humanTokenAmount, int(decimals.(float64)))
 		logging.LogTradeToCSV(result)
 
 	} else {

@@ -3,10 +3,11 @@ package config
 import "os"
 
 const (
+	SELL_PRIORITY_FEE = 100000000 // Higher for sells
+
 	POSITION_SIZE     = 10
 	MAX_POSITION      = 0.5
-	SLIPPAGE          = 100
-	MIN_BALANCE       = 0
+	MIN_BALANCE       = 2
 	JUPITER_QUOTE_URL = "https://api.jup.ag/swap/v1/quote"
 	JUPITER_SWAP_URL  = "https://api.jup.ag/swap/v1/swap"
 

@@ -32,7 +32,14 @@ func GetSolBalance(ctx context.Context) float64 {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 100,
+			IdleConnTimeout:     90 * time.Second,
+		},
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("Failed to perform request: %v", err)
@@ -86,7 +93,14 @@ func GetTokenBalance(ctx context.Context, tokenAddress string) float64 {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 100,
+			IdleConnTimeout:     90 * time.Second,
+		},
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("Error sending HTTP request: %v", err)
