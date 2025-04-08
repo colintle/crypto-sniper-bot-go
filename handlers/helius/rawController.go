@@ -202,7 +202,8 @@ func RawHelisusHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		result = transaction.Buy(tokenMint, solAmount)
+		// decimals has to be from the token
+		result = transaction.Buy(tokenMint, solAmount, decimals.(int))
 		logging.LogTradeToCSV(result)
 	} else if txType == "sell" && len(tokenMint) > 0 && tokenMint != config.SOL_MINT {
 		fmt.Printf("Time for Processing After: %f\n", time.Since(t).Seconds())
@@ -229,6 +230,7 @@ func RawHelisusHandler(w http.ResponseWriter, r *http.Request) {
 
 		}
 
+		// decimals has to be from the token
 		result = transaction.Sell(tokenMint, humanTokenAmount, decimals.(int))
 		logging.LogTradeToCSV(result)
 

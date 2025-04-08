@@ -117,7 +117,7 @@ func EnhancedHeliusHandler(w http.ResponseWriter, r *http.Request) {
 				// fmt.Printf("  SOL Spent: %.10f\n", solSpent)
 				// fmt.Printf("  Price per token: %.10f SOL\n\n", price)
 
-				result = transaction.Buy(mint, solSpent)
+				result = transaction.Buy(mint, solSpent, 6)
 				logging.LogTradeToCSV(result)
 
 			} else if fromUser == config.TRACKING_WALLET {

@@ -35,8 +35,7 @@ func Sell(tokenMint string, tokenAmount float64, decimals int) models.Trade {
 		return tradeError(fmt.Sprintf("Quote error: %v", err), tokenMint, models.Sell, models.QUOTE_ERROR, currentSOLBalance)
 	}
 
-	// converts the outAmount from lamports to not lamports
-	swapTx, solReceived, err := getSwapTransaction(config.SOL_MINT, quoteResp)
+	swapTx, solReceived, err := getSwapTransaction(config.SOL_MINT, quoteResp, 9)
 	if err != nil {
 		return tradeError(fmt.Sprintf("Swap preparation failed: %v", err), tokenMint, models.Sell, models.SWAP_ERROR, currentSOLBalance)
 	}

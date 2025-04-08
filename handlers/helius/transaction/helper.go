@@ -11,7 +11,7 @@ import (
 
 	"github.com/colintle/crypto-sniper-bot-go/config"
 	"github.com/colintle/crypto-sniper-bot-go/models"
-	"github.com/colintle/crypto-sniper-bot-go/util"
+	// "github.com/colintle/crypto-sniper-bot-go/util"
 )
 
 func tradeError(msg string, tokenMint string, side models.Side, error models.Error, balance float64) models.Trade {
@@ -28,7 +28,7 @@ func tradeError(msg string, tokenMint string, side models.Side, error models.Err
 	}
 }
 
-func getSwapTransaction(tokenMint string, quoteResp map[string]interface{}) (string, float64, error) {
+func getSwapTransaction(tokenMint string, quoteResp map[string]interface{}, decimals int) (string, float64, error) {
 	swapReq := map[string]interface{}{
 		"userPublicKey": WalletPublicKey.String(),
 		"quoteResponse": quoteResp,
@@ -69,12 +69,7 @@ func getSwapTransaction(tokenMint string, quoteResp map[string]interface{}) (str
 		return "", 0, fmt.Errorf("invalid outAmount: %v", err)
 	}
 
-	decimals := util.GetTokenDecimals(tokenMint)
-	if decimals == nil {
-		return "", 0, fmt.Errorf("missing decimals")
-	}
-
-	trueToken := outAmountParsed / float64(intPow(10, *decimals))
+	trueToken := outAmountParsed / float64(intPow(10, decimals))
 	return tx, trueToken, nil
 }
 

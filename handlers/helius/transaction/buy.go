@@ -10,7 +10,7 @@ import (
 	"github.com/colintle/crypto-sniper-bot-go/models"
 )
 
-func Buy(tokenMint string, solSpent float64) models.Trade {
+func Buy(tokenMint string, solSpent float64, decimals int) models.Trade {
 	buySolAmount := solSpent / config.POSITION_SIZE
 	balance := operations.GetSOLBalanceCached()
 
@@ -29,7 +29,7 @@ func Buy(tokenMint string, solSpent float64) models.Trade {
 	}
 
 	// converts the outAmount from lamports to not lamports
-	swapTx, trueToken, err := getSwapTransaction(tokenMint, quoteResp)
+	swapTx, trueToken, err := getSwapTransaction(tokenMint, quoteResp, decimals)
 	if err != nil {
 		return tradeError(fmt.Sprintf("Swap preparation failed: %v", err), tokenMint, models.Buy, models.SWAP_ERROR, balance)
 	}
