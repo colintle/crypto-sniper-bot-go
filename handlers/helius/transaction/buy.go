@@ -28,11 +28,15 @@ func Buy(tokenMint string, solSpent float64, decimals int) models.Trade {
 		return tradeError(fmt.Sprintf("Quote error: %v", err), tokenMint, models.Buy, models.QUOTE_ERROR, balance)
 	}
 
+	// fmt.Println("Buy: Received quote")
+
 	// converts the outAmount from lamports to not lamports
 	swapTx, trueToken, err := getSwapTransaction(tokenMint, quoteResp, decimals)
 	if err != nil {
 		return tradeError(fmt.Sprintf("Swap preparation failed: %v", err), tokenMint, models.Buy, models.SWAP_ERROR, balance)
 	}
+
+	// fmt.Println("Buy: Received swap transaction")
 
 	redisSuccess, originalSOL, originalToken, newSOL := operations.Buy(tokenMint, buySolAmount, trueToken)
 	if !redisSuccess {
@@ -51,6 +55,8 @@ func Buy(tokenMint string, solSpent float64, decimals int) models.Trade {
 
 		return tradeError("Signing and sending transaction failed", tokenMint, models.Buy, models.SIGN_ERROR, balance)
 	}
+
+	// fmt.Println("Buy: Signed and sent transaction")
 
 	return models.Trade{
 		Success:      true,
